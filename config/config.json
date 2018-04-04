@@ -1,0 +1,8 @@
+{
+  "serverAdd": "127.0.0.1:8000",
+  "isCheck": false,
+  "javaApi": {
+    "backHost": "http://10.8.82.71:8080/web-api/",
+    "timeOut": 2
+  }
+}
