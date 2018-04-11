@@ -57,9 +57,11 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	controller := refV.Interface().(ControllerInterface)
 	controller.Init(ctx,controllerName,methodName,refV.Interface())
-	controller.BeforeController()
-	controller.BeforeAction()
-	method.Call(nil)
+	if controller.BeforeController() {
+		if controller.BeforeAction() {
+			method.Call(nil)
+		}
+	}
 }
 
 func (h *handler) findControllerInfo(w http.ResponseWriter,r *http.Request) (string, string) {

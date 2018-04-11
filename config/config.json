@@ -4,5 +4,9 @@
   "javaApi": {
     "backHost": "http://10.8.82.71:8080/show-web/",
     "timeOut": 2
+  },
+  "apiConfig":{
+    "validTime": 180,
+    "checkSign":true
   }
 }

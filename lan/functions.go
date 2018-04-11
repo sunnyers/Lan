@@ -7,3 +7,10 @@ func MapMerge(map1 map[string]interface{},map2 map[string]interface{}) map[strin
 	}
 	return map1
 }
+
+func Isset(data map[string]interface{},key string) (string,bool) {
+	if val,ok := data[key]; ok {
+		return val.(string),true
+	}
+	return "",false
+}

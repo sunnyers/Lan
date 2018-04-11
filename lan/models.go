@@ -7,11 +7,12 @@ import (
 	"io/ioutil"
 	"time"
 	"encoding/json"
+	"strconv"
 )
 
 var BackHost = ""
 var TimeOut = 0
-var client = &http.Client{Timeout: time.Second * 3}
+var client = &http.Client{Timeout: time.Second * 2}
 
 var models *CModel
 
@@ -36,12 +37,12 @@ func (c *CModel) Validate() bool {
 	return true
 }
 
-func (c *CModel) Post(appIao ModelInterface,methodName string,params map[string]interface{}) (int64,map[string]interface{}) {
+func (c *CModel) Post(appIao ModelInterface,methodName string,params map[string]interface{}) (int,map[string]interface{}) {
 	result := make(map[string]interface{})
 	parameter, _ := json.Marshal(params)
 	requestUri := c.GetApiUrl(appIao) + methodName
 	body,err := c.httpRequest(requestUri, parameter)
-	var code int64 = 500
+	code := 500
 	result["message"] = "系统错误"
 	if err != nil{
 		fmt.Println("error is ",err.Error())
@@ -53,8 +54,8 @@ func (c *CModel) Post(appIao ModelInterface,methodName string,params map[string]
 	if errs != nil{
 		return code,result
 	}
-	code,_ = result["code"].(json.Number).Int64()
-	if code == 500 || code == 501 || code == 502 {
+	code,_ = strconv.Atoi(string(result["code"].(json.Number)))
+	if code == 200 || code == 501 || code == 502 {
 		result["message"] = "您已退出登陆，请刷新页面后重新登录"
 		return code,result
 	}

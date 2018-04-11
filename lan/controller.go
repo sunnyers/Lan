@@ -10,8 +10,8 @@ type Controller struct {
 
 type ControllerInterface interface {
 	Init(ctx *Context,controllerName string,methodName string,app interface{})
-	BeforeController()
-	BeforeAction()
+	BeforeController() bool
+	BeforeAction() bool
 }
 
 func (c *Controller) Init(ctx *Context,controllerName string,method string,app interface{}){
@@ -23,6 +23,15 @@ func (c *Controller) Init(ctx *Context,controllerName string,method string,app i
 }
 
 func (c *Controller) GetParams(name string,defaultValue string) string {
+	params := c.GetMergeParams()
+	if value,ok := params[name]; ok && value != "" {
+		return value.(string)
+	}else{
+		return defaultValue
+	}
+}
+
+func (c *Controller) GetMergeParams() map[string]interface{} {
 	c.Ctx.R.ParseForm()
 	get := make(map[string]interface{})
 	if len(c.Ctx.R.Form) > 0 {
@@ -37,11 +46,7 @@ func (c *Controller) GetParams(name string,defaultValue string) string {
 		}
 	}
 	params := MapMerge(get,post)
-	if value,ok := params[name]; ok && value != "" {
-		return value.(string)
-	}else{
-		return defaultValue
-	}
+	return params
 }
 
 func (c *Controller) GetQuery(name string,defaultValue string) string {
@@ -61,5 +66,9 @@ func (c *Controller) GetPost(name string,defaultValue string) string {
 	return get
 }
 
-func (c *Controller) BeforeController(){}
-func (c *Controller) BeforeAction(){}
+func (c *Controller) BeforeController() bool{
+	return true
+}
+func (c *Controller) BeforeAction() bool{
+	return true
+}
