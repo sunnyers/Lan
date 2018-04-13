@@ -16,6 +16,7 @@ var client = &http.Client{Timeout: time.Second * 2}
 
 var models *CModel
 
+
 type ModelInterface interface {
 	GetUri() string
 	GetRules() [][]string
@@ -55,7 +56,7 @@ func (c *CModel) Post(appIao ModelInterface,methodName string,params map[string]
 		return code,result
 	}
 	code,_ = strconv.Atoi(string(result["code"].(json.Number)))
-	if code == 200 || code == 501 || code == 502 {
+	if code == 500 || code == 501 || code == 502 {
 		result["message"] = "您已退出登陆，请刷新页面后重新登录"
 		return code,result
 	}

@@ -9,6 +9,11 @@ import (
 	"strconv"
 	"time"
 	Dal "../common/dal"
+	"crypto/md5"
+	"encoding/hex"
+	"net/url"
+	"bytes"
+	"sort"
 )
 
 var ValidTime int64 = 0
@@ -31,16 +36,48 @@ type MobileApiController struct {
 func (c *MobileApiController) BeforeController() bool {
 	c.initCommonParams()
 	if c.checkCommonParams() {
-		return c.checkSign()
+		if CheckSign == true {
+			return c.checkSign()
+		}else {
+			return true
+		}
 	}
 	return false
 }
 
 func (c *MobileApiController) checkSign() bool{
-	return c.checkAppName()
+	if c.checkAppName() {
+		sign := c.params["sign"]
+		if  c.createSign(c.params) == sign {
+			return true
+		}
+		c.ReturnError(config.COMMUNAL_PARAM_SIGN_INVALID,"")
+	}
+	return false
+}
 
-
-	return true
+func (c *MobileApiController) createSign(params map[string]interface{}) string {
+	delete(params,"sign")
+	keys := make([]string, 0, len(params))
+	for k := range params {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)  //升序
+	//sort.Sort(sort.Reverse(sort.StringSlice(keys)))  //倒序
+	var buf bytes.Buffer
+	for _,k := range keys {
+		buf.WriteString(k)
+		buf.WriteString("=")
+		buf.WriteString(params[k].(string))
+		buf.WriteString("&")
+	}
+	signStr := buf.String()
+	signStr = signStr[0:len(signStr)-1]
+	s := url.QueryEscape(signStr)
+	m := md5.New()
+	m.Write([]byte(s))
+	md5Value := hex.EncodeToString(m.Sum(nil))
+	return md5Value
 }
 
 func (c *MobileApiController) checkAppName() bool {
@@ -53,7 +90,7 @@ func (c *MobileApiController) checkAppName() bool {
 		if rsp["data"] == "" || data["appStatus"] == 0 {
 			c.ReturnError(config.COMMUNAL_PARAM_APPKEY_INVALID, "")
 		}
-		c.params["ppsecret"] = data["ppSecret"]
+		c.params["appsecret"] = data["appSecret"]
 		return true
 	} else {
 		c.ReturnJson(code, make([]interface{},0), rsp["message"].(string))
