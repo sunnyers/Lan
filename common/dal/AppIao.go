@@ -33,6 +33,6 @@ func (c *AppIao) GetRules() [][]string{
 	return m
 }
 
-func (c *AppIao) Request(methodName string,params map[string]interface{}) (int,map[string]interface{}) {
-	return c.Post(c,methodName, params)
+func (c *AppIao) Request(methodName string,params map[string]interface{},response chan map[string]interface{}) {
+	go c.Post(c,methodName, params,response)
 }

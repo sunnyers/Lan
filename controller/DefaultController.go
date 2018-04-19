@@ -19,17 +19,13 @@ func (c *DefaultController) Index(){
 func (c *DefaultController) Default() {
 	params := make(map[string]interface{})
 	params["appEnname"] = "wm_android"
-	sp := c.GetParams("aa","bb")
-	if sp == "100" {
-		fmt.Println("int ",sp)
-	}else{
-		fmt.Println("interface ",sp)
-	}
-	code,rsp := c.appIao.Request("getApp", params)
-	if code == 200 {
-		c.ReturnJson(200, rsp["data"], "")
+	responseMessage := make(chan map[string]interface{})
+	c.appIao.Request("getApp", params, responseMessage)
+	response := <- responseMessage
+	if response["code"].(int) == 200 {
+		c.ReturnJson(200, response["data"], "")
 	} else {
-		c.ReturnJson(code, rsp["data"], rsp["message"].(string))
+		c.ReturnJson(response["code"].(int), response["data"], response["message"].(string))
 	}
 }
 

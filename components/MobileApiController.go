@@ -84,16 +84,19 @@ func (c *MobileApiController) checkAppName() bool {
 	params := make(map[string]interface{})
 	params["appEnname"] = c.params["appkey"]
 	var appIao Dal.AppIao
-	code,rsp := appIao.Request("getApp", params)
-	if code == 200 {
-		data := rsp["data"].(map[string]interface{})
-		if rsp["data"] == "" || data["appStatus"] == 0 {
+	responseChan := make(chan map[string]interface{})
+	appIao.Request("getApp", params, responseChan)
+	response := <-responseChan
+	if response["code"].(int) == 200 {
+		data := response["data"].(map[string]interface{})
+		if response["data"] == "" || data["appStatus"] == 0 {
 			c.ReturnError(config.COMMUNAL_PARAM_APPKEY_INVALID, "")
 		}
+		fmt.Println("appEnname is :",data["appEnname"])
 		c.params["appsecret"] = data["appSecret"]
 		return true
 	} else {
-		c.ReturnJson(code, make([]interface{},0), rsp["message"].(string))
+		c.ReturnJson(response["code"].(int), make([]interface{}, 0), response["message"].(string))
 		return false
 	}
 }
@@ -110,7 +113,6 @@ func (c *MobileApiController) checkCommonParams() bool{
 		if diff < 0 {
 			diff = -diff
 		}
-		fmt.Println(ts,t.Unix(),diff)
 		if diff > ValidTime {
 			c.ReturnError(config.COMMUNAL_PARAM_TIMESTAMP_INVALID,"")
 			return false

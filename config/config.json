@@ -5,8 +5,9 @@
     "backHost": "http://10.8.82.71:8080/show-web/",
     "timeOut": 2
   },
-  "apiConfig":{
+  "apiConfig": {
     "validTime": 180,
-    "checkSign":true
-  }
+    "checkSign": true
+  },
+  "runtime":""
 }

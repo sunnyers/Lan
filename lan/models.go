@@ -38,30 +38,32 @@ func (c *CModel) Validate() bool {
 	return true
 }
 
-func (c *CModel) Post(appIao ModelInterface,methodName string,params map[string]interface{}) (int,map[string]interface{}) {
+func (c *CModel) Post(appIao ModelInterface,methodName string,params map[string]interface{},response chan map[string]interface{}) {
 	result := make(map[string]interface{})
 	parameter, _ := json.Marshal(params)
 	requestUri := c.GetApiUrl(appIao) + methodName
 	body,err := c.httpRequest(requestUri, parameter)
-	code := 500
+	result["code"] = 500
 	result["message"] = "系统错误"
 	if err != nil{
 		fmt.Println("error is ",err.Error())
-		return code,result
+		response <- result
+		return
 	}
 	js := json.NewDecoder(bytes.NewReader(body))
 	js.UseNumber()
 	errs := js.Decode(&result)
 	if errs != nil{
-		return code,result
+		response <- result
+		return
 	}
-	code,_ = strconv.Atoi(string(result["code"].(json.Number)))
-	if code == 500 || code == 501 || code == 502 {
+	result["code"],_ = strconv.Atoi(string(result["code"].(json.Number)))
+	if result["code"] == 200 || result["code"] == 501 || result["code"] == 502 {
 		result["message"] = "您已退出登陆，请刷新页面后重新登录"
-		return code,result
+		response <- result
+		return
 	}
-	delete(result,"code")
-	return code,result
+	response <- result
 }
 
 func (c *CModel) httpRequest(url string,parameter []byte) ([]byte, error) {
