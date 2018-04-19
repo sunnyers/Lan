@@ -92,7 +92,6 @@ func (c *MobileApiController) checkAppName() bool {
 		if response["data"] == "" || data["appStatus"] == 0 {
 			c.ReturnError(config.COMMUNAL_PARAM_APPKEY_INVALID, "")
 		}
-		fmt.Println("appEnname is :",data["appEnname"])
 		c.params["appsecret"] = data["appSecret"]
 		return true
 	} else {
