@@ -35,7 +35,6 @@ func NewHandler() *handler {
 	return h
 }
 
-
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ctx := h.pool.Get().(*Context)
