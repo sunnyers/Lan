@@ -8,11 +8,14 @@ import (
 	"time"
 	"encoding/json"
 	"strconv"
+	"github.com/patrickmn/go-cache"
+	"errors"
 )
 
 var BackHost = ""
 var TimeOut = 0
 var client = &http.Client{Timeout: time.Second * 2}
+var cs = cache.New(120*time.Second, 10*time.Second)
 
 var models *CModel
 
@@ -20,6 +23,7 @@ var models *CModel
 type ModelInterface interface {
 	GetUri() string
 	GetRules() [][]string
+	GetCacheModel(name string) (bool,map[string]string)
 }
 
 type CModel struct {
@@ -34,6 +38,10 @@ func (c *CModel) GetApiUrl(appIao ModelInterface) string {
 	return BackHost + appIao.GetUri()
 }
 
+func (c CModel) GetCacheModel(appIao ModelInterface,name string) (bool,map[string]string){
+	return appIao.GetCacheModel(name)
+}
+
 func (c *CModel) Validate() bool {
 	return true
 }
@@ -42,13 +50,30 @@ func (c *CModel) Post(appIao ModelInterface,methodName string,params map[string]
 	result := make(map[string]interface{})
 	parameter, _ := json.Marshal(params)
 	requestUri := c.GetApiUrl(appIao) + methodName
-	body,err := c.httpRequest(requestUri, parameter)
-	result["code"] = 500
-	result["message"] = "系统错误"
-	if err != nil{
-		fmt.Println("error is ",err.Error())
-		response <- result
-		return
+	body := make([]byte,0)
+	err := errors.New("ss")
+	isCache := false
+	ok,caches := c.GetCacheModel(appIao,methodName)
+	if ok && caches["type"] == "memory"{
+		isCache = true
+		foo, found := cs.Get(methodName)
+		if found {
+			body = foo.([]byte)
+		}
+	}
+	if len(body) == 0 {
+		body, err = c.httpRequest(requestUri, parameter)
+		result["code"] = 500
+		result["message"] = "系统错误"
+		if err != nil {
+			fmt.Println("error is ", err.Error())
+			response <- result
+			return
+		}
+		if isCache {
+			fmt.Println("set cache success ")
+			cs.Set(methodName,body,cache.DefaultExpiration)
+		}
 	}
 	js := json.NewDecoder(bytes.NewReader(body))
 	js.UseNumber()
@@ -58,7 +83,7 @@ func (c *CModel) Post(appIao ModelInterface,methodName string,params map[string]
 		return
 	}
 	result["code"],_ = strconv.Atoi(string(result["code"].(json.Number)))
-	if result["code"] == 200 || result["code"] == 501 || result["code"] == 502 {
+	if result["code"] == 500 || result["code"] == 501 || result["code"] == 502 {
 		result["message"] = "您已退出登陆，请刷新页面后重新登录"
 		response <- result
 		return

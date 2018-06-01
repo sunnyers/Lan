@@ -20,6 +20,16 @@ func NewAppIao() *AppIao{
 	return appIao
 }
 
+func (c *AppIao) GetCacheModel(methodName string) (bool,map[string]string)  {
+	cache := map[string]map[string]string{
+		"getApp":{"time":"30","type":"memory"},
+	}
+	if val,ok := cache[methodName]; ok {
+		return true,val
+	}
+	return false,make(map[string]string,0)
+}
+
 func (c *AppIao) GetUri() string{
 	return "app/"
 }
