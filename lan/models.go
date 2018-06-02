@@ -14,7 +14,7 @@ import (
 
 var BackHost = ""
 var TimeOut = 0
-var client = &http.Client{Timeout: time.Second * 2}
+var client = &http.Client{Timeout: time.Second * time.Duration(TimeOut)}
 var cs = cache.New(120*time.Second, 10*time.Second)
 
 var models *CModel
