@@ -8,17 +8,26 @@ import (
 	"time"
 	"encoding/json"
 	"strconv"
-	"github.com/patrickmn/go-cache"
+	"github.com/muesli/cache2go"
 	"errors"
+	"sync"
 )
 
 var BackHost = ""
 var TimeOut = 0
 var client = &http.Client{Timeout: time.Second * time.Duration(TimeOut)}
-var cs = cache.New(120*time.Second, 10*time.Second)
+var cache = cache2go.Cache("goCache")
+
+
+var lock = new(sync.RWMutex)
+
 
 var models *CModel
 
+type myStruct struct {
+	text     string
+	moreData []byte
+}
 
 type ModelInterface interface {
 	GetUri() string
@@ -56,24 +65,38 @@ func (c *CModel) Post(appIao ModelInterface,methodName string,params map[string]
 	ok,caches := c.GetCacheModel(appIao,methodName)
 	if ok && caches["type"] == "memory"{
 		isCache = true
-		foo, found := cs.Get(methodName)
-		if found {
-			body = foo.([]byte)
+		res, err := cache.Value(methodName)
+		if err == nil {
+			body = res.Data().([]byte)
 		}
 	}
 	if len(body) == 0 {
-		body, err = c.httpRequest(requestUri, parameter)
-		result["code"] = 500
-		result["message"] = "系统错误"
-		if err != nil {
-			fmt.Println("error is ", err.Error())
-			response <- result
-			return
+		lock.Lock()
+		if isCache && caches["type"] == "memory"{
+			res, err := cache.Value(methodName)
+			if err == nil {
+				body = res.Data().([]byte)
+			}
 		}
-		if isCache {
-			fmt.Println("set cache success ")
-			cs.Set(methodName,body,cache.DefaultExpiration)
+		if len(body) == 0 {
+			body, err = c.httpRequest(requestUri, parameter)
+			result["code"] = 500
+			result["message"] = "系统错误"
+			if err != nil {
+				fmt.Println("error is ", err.Error())
+				response <- result
+				return
+			}
+			if isCache {
+				fmt.Println("set cache success ")
+				if cacheTime,err := strconv.ParseInt(caches["time"],10,64); err == nil{
+					cache.Add(methodName, time.Duration(cacheTime) * time.Second, body)
+				}else{
+					cache.Add(methodName, 120 * time.Second, body)
+				}
+			}
 		}
+		lock.Unlock()
 	}
 	js := json.NewDecoder(bytes.NewReader(body))
 	js.UseNumber()
