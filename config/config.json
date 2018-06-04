@@ -9,5 +9,5 @@
 		"validTime": 180,
 		"checkSign": true
 	},
-	"runtime": ""
+	"runTimes": "/runtimes/"
 }

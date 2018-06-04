@@ -17,17 +17,8 @@ var BackHost = ""
 var TimeOut = 0
 var client = &http.Client{Timeout: time.Second * time.Duration(TimeOut)}
 var cache = cache2go.Cache("goCache")
-
-
 var lock = new(sync.RWMutex)
-
-
 var models *CModel
-
-type myStruct struct {
-	text     string
-	moreData []byte
-}
 
 type ModelInterface interface {
 	GetUri() string
@@ -60,7 +51,7 @@ func (c *CModel) Post(appIao ModelInterface,methodName string,params map[string]
 	parameter, _ := json.Marshal(params)
 	requestUri := c.GetApiUrl(appIao) + methodName
 	body := make([]byte,0)
-	err := errors.New("ss")
+	err := errors.New("")
 	isCache := false
 	ok,caches := c.GetCacheModel(appIao,methodName)
 	if ok && caches["type"] == "memory"{
@@ -83,7 +74,7 @@ func (c *CModel) Post(appIao ModelInterface,methodName string,params map[string]
 			result["code"] = 500
 			result["message"] = "系统错误"
 			if err != nil {
-				fmt.Println("error is ", err.Error())
+				LogError("请求地址:%s\r\n请求参数:%s\r\n请求错误:%s",requestUri,parameter,err.Error())
 				response <- result
 				return
 			}
@@ -106,10 +97,14 @@ func (c *CModel) Post(appIao ModelInterface,methodName string,params map[string]
 		return
 	}
 	result["code"],_ = strconv.Atoi(string(result["code"].(json.Number)))
-	if result["code"] == 500 || result["code"] == 501 || result["code"] == 502 {
-		result["message"] = "您已退出登陆，请刷新页面后重新登录"
-		response <- result
-		return
+	if result["code"] != 200 {
+		if result["code"] == 500 || result["code"] == 501 || result["code"] == 502 {
+			result["message"] = "您已退出登陆，请刷新页面后重新登录"
+			response <- result
+			return
+		}else{
+			LogError("请求地址:%s\r\n请求参数:%s\r\n请求结果:%s", requestUri, parameter, string(body))
+		}
 	}
 	response <- result
 }
@@ -124,19 +119,19 @@ func (c *CModel) httpRequest(url string,parameter []byte) ([]byte, error) {
 		if nil != response {
 			response.Body.Close()
 		}
-		fmt.Sprintln("httpReauest %s do err : %s - %d \n", url, err.Error())
+		LogError("httpReauest %s do err : %s - %d \n", url, err.Error())
 		return nil, err
 	}
 	if response.StatusCode == 200 {
 		body, err = ioutil.ReadAll(response.Body)
 		if err != nil {
 			response.Body.Close()
-			fmt.Sprintln("httpReauest %s ReadAll err : %s - %d\n", url, err.Error())
+			LogError("httpReauest %s ReadAll err : %s - %d\n", url, err.Error())
 			return nil, err
 		}
-		fmt.Sprintln("recv http data reply: %s--%s--%s\n", url, string(body), string(parameter))
+		LogError("recv http data reply: %s--%s--%s\n", url, string(body), string(parameter))
 	} else {
-		fmt.Sprintln("recv http response StatusCode !=200: %d-%s\n", response.StatusCode, url)
+		LogError("recv http response StatusCode !=200: %d-%s\n", response.StatusCode, url)
 	}
 	response.Body.Close()
 	return body, nil
